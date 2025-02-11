@@ -1,8 +1,3 @@
-
-taoufikmohamed
-create a summary of the application objective
-
-GitHub Copilot
 Energy Analysis Project Documentation
 Project Overview
 An advanced energy analytics application that interfaces with multiple energy data APIs (EIA and DeepSeek) to analyze and process energy generation and consumption data.
