@@ -45,3 +45,14 @@ Efficient retry backoff strategy
 Cached responses
 Fallback mechanisms
 This application aims to provide reliable, real-time energy analytics with built-in redundancy and error handling mechanisms.
+
+# Create virtual environment
+python -m venv energy_env
+
+# Activate virtual environment (Windows)
+energy_env\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+
