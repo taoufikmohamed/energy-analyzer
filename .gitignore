@@ -1,0 +1,44 @@
+# Ignore virtual environment files
+energy_env/
+venv/
+.env/
+ENV/
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+energ/
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore environment variables
+.env
+*.env
+
+# Ignore data files and logs
+*.log
+*.csv
+*.json
+*.db
+*.sqlite3
+
+# Ignore build and distribution files
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore macOS system files
+.DS_Store
+
+# Ignore Windows system files
+Thumbs.db
