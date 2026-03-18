@@ -46,10 +46,14 @@ Cached responses
 Fallback mechanisms
 This application aims to provide reliable, real-time energy analytics with built-in redundancy and error handling mechanisms.
 
+# Clone repository
+git clone <repository-url>
+cd energy-analysis
+
 # Create virtual environment
 python -m venv energy_env
 
-# Activate virtual environment (Windows)
+# Activate environment (Windows)
 energy_env\Scripts\activate
 
 # Install dependencies

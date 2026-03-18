@@ -1,0 +1,279 @@
+
+   ╔═══════════════════════════════════════════════════════════════════════════════════╗
+   ║                                                                                   ║
+   ║                  ⚡ ENERGY ANALYSIS APPLICATION ARCHITECTURE ⚡                  ║
+   ║                                                                                   ║
+   ╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+
+                              🖥️  USER INTERFACE
+                           ╭──────────────────────╮
+                           │   energy.py (GUI)    │
+                           │  ┌────────────────┐  │
+                           │  │  Dark Theme    │  │
+                           │  │  Real Charts   │  │
+                           │  │  Energy Stats  │  │
+                           │  └────────────────┘  │
+                           ╰──────────┬───────────╯
+                                      │
+                                      ▼
+                         ┏━━━━━━━━━━━━━━━━━━━━━━┓
+                         ┃   DATA FETCHER      ┃
+                         ┃ (data_fetcher.py)   ┃
+                         ┗━━━━━━━━┬━━━━━━━━━━━━┛
+                                  │
+                  ┌───────────────┼───────────────┐
+                  │               │               │
+          ╔═══════▼════════╗   ╔═══▼════════╗   ╔═▼═════════════╗
+          ║  📡 API CLIENT ║   ║  ♻️ CACHE  ║   ║  🛡️ FALLBACK ║
+          ║                ║   ║  SERVICE   ║   ║  SERVICE      ║
+          ║ eia_client.py  ║   ║            ║   ║               ║
+          ║                ║   ║ 5-min data ║   ║ 10-min backup ║
+          ║ • Retry logic  ║   ║ stored     ║   ║ when API down ║
+          ║ • Timeout mgmt ║   ║ locally    ║   ║               ║
+          ║ • Keep-alive   ║   ║            ║   ║ Coal special  ║
+          ╚═══════┬════════╝   ╚════┬───────╝   ╚═┬═════════════╝
+                  │                 │            │
+                  └─────────────────┼────────────┘
+                                    ▼
+                        ┏━━━━━━━━━━━━━━━━━━━┓
+                        ┃  ERROR MONITOR    ┃
+                        ┃  & HEALTH CHECK   ┃
+                        ┃                   ┃
+                        ┃ • Track failures  ┃
+                        ┃ • Test API status ┃
+                        ┃ • Log all events  ┃
+                        ┗━━━━━━━┬───────────┛
+                                ▼
+                    ╔════════════════════════════╗
+                    ║  ⚙️  CONFIGURATION LAYER  ║
+                    ║      constants.py         ║
+                    ║                            ║
+                    ║  • Timeouts: 5-15 sec     ║
+                    ║  • Retries: 3 (Coal: 4)   ║
+                    ║  • Cache: 5-10 min        ║
+                    ║  • API URLs & Keys        ║
+                    ║  • Error thresholds       ║
+                    ╚════════════════════════════╝
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+
+                             📂 FOLDER STRUCTURE
+
+
+                    energy-analysis/
+                           │
+                    ┌──────┼──────┬──────────┐
+                    │      │      │          │
+               energy.py   │      │    ┌─────▼──────┐
+               (GUI)       │      │    │   src/     │
+                           │      │    │            │
+               data_        │      │    ├── api/    │
+               fetcher.py   │      │    │  ├─ eia_client.py
+               (Core)       │      │    │  └─ health_check.py
+                            │      │    │
+              constants.py  │      │    ├── services/
+              (Config)      │      │    │  ├─ coal_service.py
+                            │      │    │  └─ fallback_service.py
+                        tests/     │    │
+                        (Tests)    │    ├── utils/
+                                   │    │  ├─ logging_config.py
+                             .env  │    │  ├─ health_check.py
+                          (Keys)   │    │  └─ error_monitor.py
+                                   │    │
+                                   │    └─ __pycache__/
+                                   │
+                            requirements.txt
+                            (Dependencies)
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+
+                          🔄 DATA FLOW (When You Click Refresh)
+
+
+                              ┌─────────┐
+                              │ User    │
+                              │ Clicks  │
+                              │ Refresh │
+                              └────┬────┘
+                                   │
+                        ┌──────────▼──────────┐
+                        │  Get Solar Data     │
+                        │  From EIA API       │
+                        │  (Timeout: 5 sec)   │
+                        └──────────┬──────────┘
+                                   │
+                        ┌──────────▼──────────┐
+                        │  If fails:          │
+                        │  Retry 3 times      │
+                        │  (Wait 1 sec each)  │
+                        └──────────┬──────────┘
+                                   │
+                        ┌──────────▼──────────┐
+                        │  Success?           │
+                        └──────────┬──────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │ YES                        │ NO
+                    ▼                            ▼
+            ┌──────────────┐        ┌────────────────────┐
+            │ Cache data   │        │ Use fallback data  │
+            │ for 5 min    │        │ (10-min cache)     │
+            │ ✓ Success    │        │ ⚠️  Limited data    │
+            └──────┬───────┘        └────────┬───────────┘
+                   │                         │
+                   └────────────┬────────────┘
+                                ▼
+                    ┌────────────────────────┐
+                    │  Get Wind Data         │
+                    │  Get Coal Data         │
+                    │  Get Natural Gas Data  │
+                    └────────────┬───────────┘
+                                 ▼
+                    ┌────────────────────────┐
+                    │ Combine All Data       │
+                    └────────────┬───────────┘
+                                 ▼
+                    ┌────────────────────────┐
+                    │ Display Charts         │
+                    │ & Show Results         │
+                    │ Update GUI             │
+                    └────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+
+                        🎯 KEY COMPONENTS EXPLAINED
+
+
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃  1️⃣  FRONTEND: energy.py                                       ┃
+    ┃  ─────────────────────────────────────────────────────────    ┃
+    ┃  • Shows GUI window to user                                   ┃
+    ┃  • Displays real-time energy charts                           ┃
+    ┃  • Has buttons to refresh data                                ┃
+    ┃  • Uses Tkinter library (Python GUI)                          ┃
+    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃  2️⃣  CORE ENGINE: data_fetcher.py                             ┃
+    ┃  ─────────────────────────────────────────────────────────    ┃
+    ┃  • Brain of the application                                   ┃
+    ┃  • Decides where to get data from                             ┃
+    ┃  • Handles errors & retries                                   ┃
+    ┃  • Manages caching                                            ┃
+    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃  3️⃣  API CLIENT: eia_client.py                                ┃
+    ┃  ─────────────────────────────────────────────────────────    ┃
+    ┃  • Makes requests to EIA servers                              ┃
+    ┃  • Gets energy data (Solar, Wind, Coal, Gas)                 ┃
+    ┃  • Handles network timeouts                                   ┃
+    ┃  • Retries automatically on failure                           ┃
+    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃  4️⃣  BACKUP SYSTEM: fallback_service.py                      ┃
+    ┃  ─────────────────────────────────────────────────────────    ┃
+    ┃  • Stores old data as backup                                  ┃
+    ┃  • If API is down → Use old cached data                      ┃
+    ┃  • Keeps data for 10 minutes                                  ┃
+    ┃  • App still works when internet is slow                      ┃
+    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃  5️⃣  COAL SPECIAL: coal_service.py                            ┃
+    ┃  ─────────────────────────────────────────────────────────    ┃
+    ┃  • Coal data is slower to fetch                               ┃
+    ┃  • Uses longer timeout (20 sec instead of 5)                 ┃
+    ┃  • Retries 4 times (instead of 3)                            ┃
+    ┃  • Special handling for important data                        ┃
+    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃  6️⃣  UTILITIES: src/utils/                                    ┃
+    ┃  ─────────────────────────────────────────────────────────    ┃
+    ┃  • logging_config: Saves debug info to energy_app.log        ┃
+    ┃  • health_check: Tests if APIs are working                   ┃
+    ┃  • error_monitor: Tracks failures & problems                 ┃
+    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃  7️⃣  SETTINGS: constants.py                                   ┃
+    ┃  ─────────────────────────────────────────────────────────    ┃
+    ┃  • All configuration in one place                             ┃
+    ┃  • API URLs, timeouts, retry settings                        ┃
+    ┃  • Cache durations                                            ┃
+    ┃  • Easy to change without editing code                        ┃
+    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+
+                           ⏱️  IMPORTANT NUMBERS
+
+
+    ╔════════════════════════════════════════════════════════════╗
+    ║                                                            ║
+    ║  ⏪  REQUEST TIMEOUT: 5-15 seconds                         ║
+    ║     └─ How long to wait for API to respond                ║
+    ║                                                            ║
+    ║  🔄 MAX RETRIES: 3 times (Coal: 4 times)                  ║
+    ║     └─ Try again if request fails                         ║
+    ║                                                            ║
+    ║  📦 NORMAL CACHE: 5 minutes                               ║
+    ║     └─ Store data so we don't spam API                    ║
+    ║                                                            ║
+    ║  🔐 FALLBACK CACHE: 10 minutes                            ║
+    ║     └─ Keep old data longer in case API dies             ║
+    ║                                                            ║
+    ║  ⛔ ERROR THRESHOLD: 3 failures                            ║
+    ║     └─ Give up after 3 errors, use backup                ║
+    ║                                                            ║
+    ║  📊 MAX CACHE ITEMS: 1000                                 ║
+    ║     └─ Don't store more than 1000 pieces of data          ║
+    ║                                                            ║
+    ╚════════════════════════════════════════════════════════════╝
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+
+                        🚀 HOW TO RUN THE APPLICATION
+
+
+    $ python -m venv energy_env          # Create virtual environment
+    $ energy_env\Scripts\activate        # Activate it (Windows)
+    $ pip install -r requirements.txt    # Install libraries
+    $ python energy.py                   # Run the GUI app
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+
+                           📚 DEPENDENCIES
+
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │  requests    → Makes HTTP requests to EIA servers           │
+    │  pytest      → Testing framework                            │
+    │  tkinter     → Built-in GUI library                         │
+    │  matplotlib  → Creates charts & graphs                      │
+    │  Pillow      → Handles images                               │
+    │  python-dotenv → Reads API keys from .env file            │
+    │  numpy       → Math calculations                            │
+    └─────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+                              Happy Coding! ⚡
+
+═══════════════════════════════════════════════════════════════════════════════════════
