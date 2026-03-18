@@ -12,6 +12,11 @@ CONNECT_TIMEOUT = 5  # Reduced timeout for faster failure detection
 READ_TIMEOUT = 15    # Reduced timeout for quicker response
 MAX_RETRY_TIME = 30  # Reduced max retry time
 
+# Increase timeouts for Natural Gas endpoint
+NATURAL_GAS_TIMEOUT = 30  # Extended timeout
+NATURAL_GAS_MAX_RETRIES = 5  # More retries
+NATURAL_GAS_RETRY_DELAY = 2  # Longer delay between retries
+
 # Retry Configuration
 MAX_RETRIES = 3
 RETRY_BACKOFF = 0.5  # Reduced backoff for faster retries
@@ -51,4 +56,19 @@ ERROR_MESSAGES = {
     'rate_limit': "Rate limit exceeded. Please try again later.",
     'server': "Server error occurred. Please try again later.",
     'unknown': "An unexpected error occurred. Please try again."
+}
+
+# Add to existing constants.py
+COAL_SPECIFIC_CONFIG = {
+    'TIMEOUT': 20,
+    'MAX_RETRIES': 4,
+    'RETRY_DELAY': 2,
+    'CIRCUIT_BREAKER_THRESHOLD': 3
+}
+
+ERROR_THRESHOLDS = {
+    'coal': 3,
+    'natural_gas': 3,
+    'solar': 3,
+    'wind': 3
 }
